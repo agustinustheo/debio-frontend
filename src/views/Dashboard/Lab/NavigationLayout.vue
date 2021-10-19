@@ -62,6 +62,7 @@
       <router-view></router-view>
     </v-main>
 
+    <TestUploadSyncDialog></TestUploadSyncDialog>
     <UnlockWalletDialog :show="show" @toggle="toggle()"></UnlockWalletDialog>
   </v-app>
 </template>
@@ -79,6 +80,7 @@ import WalletBinding from "@/components/WalletBinding";
 import DialogAlert from "@/components/Dialog/DialogAlert";
 import { queryBalance } from "@/lib/polkadotProvider/query/balance";
 import localStorage from "@/lib/local-storage";
+import TestUploadSyncDialog from "./TestUploadSyncDialog";
 
 export default {
   name: "Dashboard",
@@ -91,6 +93,7 @@ export default {
     HeaderNotification,
     WalletBinding,
     DialogAlert,
+    TestUploadSyncDialog,
   },
   data: () => ({
     show: false,

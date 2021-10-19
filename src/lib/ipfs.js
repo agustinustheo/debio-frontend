@@ -1,5 +1,7 @@
 import ipfsWorker from "@/web-workers/ipfs-worker"
+import cryptWorker from '@/web-workers/crypt-worker'
 import store from '@/store/index'
+import axios from 'axios'
 
 export function upload({ fileChunk, fileName, fileType }) {
   const chunkSize = 10 * 1024 * 1024 // 10 MB
@@ -38,17 +40,42 @@ export function upload({ fileChunk, fileName, fileType }) {
   })
 }
 
-export async function downloadDecryptedFromIPFS(path, secretKey, publicKey, fileName, type) {
+export async function syncDecryptedFromIPFS(path, pair, fileName, type) {
   store.state.auth.loadingData = {
     loading: true,
     loadingText: "Decrypt File",
   };
   const channel = new MessageChannel();
   channel.port1.onmessage = ipfsWorker.workerDownload;
-  const pair = {
-    secretKey,
-    publicKey,
+
+  const typeFile = type;
+  ipfsWorker.workerDownload.postMessage({ path, pair, typeFile }, [channel.port2]);
+  ipfsWorker.workerDownload.onmessage = async (event) => {
+    store.state.auth.loadingData = {
+      loading: true,
+      loadingText: "Downloading File",
+    };
+    
+    const response = await axios.get(`http://localhost:4000/gcs/signed_url?filename=${fileName}`)
+    await axios.put(
+      response.data.signedUrl,
+      event.data,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }
+      },
+    )
   };
+}
+
+export async function downloadDecryptedFromIPFS(path, pair, fileName, type) {
+  store.state.auth.loadingData = {
+    loading: true,
+    loadingText: "Decrypt File",
+  };
+  const channel = new MessageChannel();
+  channel.port1.onmessage = ipfsWorker.workerDownload;
 
   const typeFile = type;
   ipfsWorker.workerDownload.postMessage({ path, pair, typeFile }, [channel.port2]);
@@ -126,4 +153,35 @@ export async function downloadPDF(data, fileName) {
     loading: false,
     loadingText: "Downloaded File",
   };
+}
+
+export function encrypt({ text, fileType, fileName, pair }) {
+  return new Promise((resolve, reject) => {
+    try {
+      const arrChunks = []
+
+      let chunksAmount
+      cryptWorker.workerEncrypt.postMessage({ pair, text }) // Access this object in e.data in worker
+      cryptWorker.workerEncrypt.onmessage = event => {
+        // The first returned data is the chunksAmount
+        if(event.data.chunksAmount) {
+          chunksAmount = event.data.chunksAmount
+          return
+        }
+
+        arrChunks.push(event.data)
+
+        if (arrChunks.length == chunksAmount ) {
+          resolve({
+            chunks: arrChunks,
+            fileName: fileName,
+            fileType: fileType
+          })
+        }
+      }
+
+    } catch (err) {
+      reject(new Error(err.message))
+    }
+  })
 }

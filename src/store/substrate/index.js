@@ -153,8 +153,8 @@ export default {
         commit('SET_LOADING_WALLET', false)
 
         const identity = await Kilt.Identity.buildFromMnemonic(mnemonic);
-        const privateKey = u8aToHex(identity.boxKeyPair.secretKey)
-        const publicKey = u8aToHex(identity.boxKeyPair.publicKey)
+        const privateKey = identity.boxKeyPair.secretKey
+        const publicKey = identity.boxKeyPair.publicKey
         const encryptedMnemonic = await Kilt.Utils.Crypto.encryptAsymmetricAsStr(mnemonic, publicKey, privateKey)
         const dataMnemonic = {
           privateKey,
@@ -442,6 +442,9 @@ export default {
   getters: {
     wallet(state) {
       return state.wallet
+    },
+    publicKey(state) {
+      return state.walletPublicKey
     },
     labAccount(state) {
       return state.labAccount
