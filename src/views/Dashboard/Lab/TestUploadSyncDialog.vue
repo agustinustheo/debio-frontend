@@ -30,6 +30,7 @@ import Dialog from '@/components/Dialog'
 import Button from '@/components/Button'
 import { upload, encrypt, syncDecryptedFromIPFS } from "@/lib/ipfs"
 import serviceHandler from "@/lib/metamask/mixins/serviceHandler"
+import { getSignedUrl, createSyncEvent } from "@/lib/gcs"
 
 export default {
   name: 'TestUploadSyncDialog',
@@ -133,6 +134,11 @@ export default {
             "file.vcf",
             "text/vCard"
         )
+
+        await getSignedUrl("file.vcf")
+        await createSyncEvent({
+          filename: "file.vcf"
+        })
     },
 
   }
